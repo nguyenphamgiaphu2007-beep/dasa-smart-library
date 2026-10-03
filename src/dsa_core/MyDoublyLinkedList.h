@@ -1,84 +1,203 @@
 #pragma once
+
 #include <iostream>
-#include <string>
-
-// Node hỗ trợ Template cho mọi kiểu dữ liệu (kể cả Document)
-template <typename T>
-struct DNode {
-    std::string key; // DocumentID (dùng kết nối O(1) với Hash Table)
-    T data;
-    DNode* prev;
-    DNode* next;
-
-    DNode(const std::string& k, const T& val) 
-        : key(k), data(val), prev(nullptr), next(nullptr) {}
-};
 
 template <typename T>
 class MyDoublyLinkedList {
 private:
-    DNode<T>* head;
-    DNode<T>* tail;
+    struct Node {
+        T data;
+        Node* prev;
+        Node* next;
+
+        Node(const T& value) {
+            data = value;
+            prev = nullptr;
+            next = nullptr;
+        }
+    };
+
+    Node* head;
+    Node* tail;
     int size;
 
-    // Ngăn chặn copy ngầm định để tránh lỗi giải phóng bộ nhớ 2 lần (Double Free)
-    MyDoublyLinkedList(const MyDoublyLinkedList&) = delete;
-    MyDoublyLinkedList& operator=(const MyDoublyLinkedList&) = delete;
-
 public:
-    MyDoublyLinkedList() : head(nullptr), tail(nullptr), size(0) {}
+    MyDoublyLinkedList() {
+        head = nullptr;
+        tail = nullptr;
+        size = 0;
+    }
 
     ~MyDoublyLinkedList() {
         clear();
     }
 
-    void clear() {
-        DNode<T>* curr = head;
-        while (curr != nullptr) {
-            DNode<T>* nextNode = curr->next;
-            delete curr;
-            curr = nextNode;
+    bool empty() const {
+        return size == 0;
+    }
+
+    int getSize() const {
+        return size;
+    }
+
+    void pushFront(const T& value) {
+        Node* newNode = new Node(value);
+
+        if (head == nullptr) {
+            head = newNode;
+            tail = newNode;
+        } else {
+            newNode->next = head;
+            head->prev = newNode;
+            head = newNode;
         }
-        head = tail = nullptr;
+
+        size++;
+    }
+
+    void pushBack(const T& value) {
+        Node* newNode = new Node(value);
+
+        if (tail == nullptr) {
+            head = newNode;
+            tail = newNode;
+        } else {
+            newNode->prev = tail;
+            tail->next = newNode;
+            tail = newNode;
+        }
+
+        size++;
+    }
+
+    bool popFront(T& value) {
+        if (head == nullptr) {
+            return false;
+        }
+
+        Node* temp = head;
+        value = temp->data;
+
+        head = head->next;
+
+        if (head != nullptr) {
+            head->prev = nullptr;
+        } else {
+            tail = nullptr;
+        }
+
+        delete temp;
+        size--;
+
+        return true;
+    }
+
+    bool popBack(T& value) {
+        if (tail == nullptr) {
+            return false;
+        }
+
+        Node* temp = tail;
+        value = temp->data;
+
+        tail = tail->prev;
+
+        if (tail != nullptr) {
+            tail->next = nullptr;
+        } else {
+            head = nullptr;
+        }
+
+        delete temp;
+        size--;
+
+        return true;
+    }
+
+    bool get(int index, T& value) const {
+        if (index < 0 || index >= size) {
+            return false;
+        }
+
+        Node* current;
+
+        if (index < size / 2) {
+            current = head;
+
+            for (int i = 0; i < index; i++) {
+                current = current->next;
+            }
+        } else {
+            current = tail;
+
+            for (int i = size - 1; i > index; i--) {
+                current = current->prev;
+            }
+        }
+
+        value = current->data;
+        return true;
+    }
+
+    bool removeAt(int index) {
+        if (index < 0 || index >= size) {
+            return false;
+        }
+
+        Node* current;
+
+        if (index < size / 2) {
+            current = head;
+
+            for (int i = 0; i < index; i++) {
+                current = current->next;
+            }
+        } else {
+            current = tail;
+
+            for (int i = size - 1; i > index; i--) {
+                current = current->prev;
+            }
+        }
+
+        if (current->prev != nullptr) {
+            current->prev->next = current->next;
+        } else {
+            head = current->next;
+        }
+
+        if (current->next != nullptr) {
+            current->next->prev = current->prev;
+        } else {
+            tail = current->prev;
+        }
+
+        delete current;
+        size--;
+
+        return true;
+    }
+
+    void clear() {
+        Node* current = head;
+
+        while (current != nullptr) {
+            Node* temp = current;
+            current = current->next;
+            delete temp;
+        }
+
+        head = nullptr;
+        tail = nullptr;
         size = 0;
     }
 
-    // Thêm vào cuối danh sách - O(1)
-    DNode<T>* pushBack(const std::string& key, const T& val) {
-        DNode<T>* newNode = new DNode<T>(key, val);
-        if (tail == nullptr) {
-            head = tail = newNode;
-        } else {
-            tail->next = newNode;
-            newNode->prev = tail;
-            tail = newNode;
+    void print() const {
+        Node* current = head;
+
+        while (current != nullptr) {
+            std::cout << current->data << std::endl;
+            current = current->next;
         }
-        size++;
-        return newNode;
     }
-
-    // Xóa Node trực tiếp trong O(1)
-    void removeNode(DNode<T>* node) {
-        if (!node) return;
-
-        if (node->prev != nullptr) {
-            node->prev->next = node->next;
-        } else {
-            head = node->next;
-        }
-
-        if (node->next != nullptr) {
-            node->next->prev = node->prev;
-        } else {
-            tail = node->prev;
-        }
-
-        delete node;
-        size--;
-    }
-
-    DNode<T>* getHead() const { return head; }
-    DNode<T>* getTail() const { return tail; }
-    int getSize() const { return size; }
-    bool isEmpty() const { return size == 0; }
 };
